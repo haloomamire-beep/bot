@@ -2,125 +2,10 @@ import requests
 import time
 from datetime import datetime
 import urllib3
-
-import time
-import requests
-
-from datetime import datetime
-
-
-import requests
-import certifi
 import os
-
-
-def checkForTCF(idAntenne):
-  url = "https://forms.vfsglobal.com.dz/IFAL/api/allowedDate/"
-  headers = {
-      "Accept": "*/*",
-      "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Connection": "keep-alive",
-      "Content-Type": "application/json",
-      "Origin": "https://forms.vfsglobal.com.dz",
-      "Referer": "https://forms.vfsglobal.com.dz/IFAL/dash",
-      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-  }
-  response = requests.post(
-      url,
-      headers=headers,
-      json={
-          "session_id": "1117342",
-          "session_token": "c4e88ffb566bfd4094373ea0ffae0185",
-          "vac_id": idAntenne,
-          "category_id": "1"
-      },
-      verify=False,
-      timeout=15
-  )
-  return response.json()
-
-def format_telegram_message(response, place):
-    message = f"📍 Location: {place}\n"
-
-    if not isinstance(response, dict):
-        return "⚠️ Invalid response from server"
-
-    if response.get("status") != 1 or not response.get("datas"):
-        message += "❌ No appointment slots available at the moment."
-        return message
-
-    for item in response["datas"]:
-        slot_date = item.get("slot_date")
-        if slot_date:
-            # Convert date from YYYY-MM-DD to a readable format
-            try:
-                formatted_date = datetime.strptime(slot_date, "%Y-%m-%d").strftime("%d %b %Y")
-                message += f"✅ Available date: {formatted_date}\n"
-            except ValueError:
-                message += f"⚠️ Invalid date format: {slot_date}\n"
-        else:
-            message += "⚠️ Date missing in response\n"
-
-    return message
-
-
-BOT_TOKEN = "8532475060:AAHqNAMopq_3YCG8poKJJJ0u8_mvaYjMVNI"
-CHAT_ID = "6086541776"
-
-API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
-
-running = False
-last_update_id = None
-
-
-def send_message(text):
-    requests.post(
-        f"{API_URL}/sendMessage",
-        data={"chat_id": CHAT_ID, "text": text}
-    )
-
-
-def get_updates():
-    global last_update_id
-    params = {}
-    if last_update_id:
-        params["offset"] = last_update_id + 1
-
-    r = requests.get(f"{API_URL}/getUpdates", params=params).json()
-    return r.get("result", [])
-
-
-while True:
-    updates = get_updates()
-
-    for update in updates:
-        last_update_id = update["update_id"]
-
-        if "message" in update:
-            text = update["message"].get("text", "")
-
-            if text == "/start":
-                running = True
-                send_message("✅ Notifications STARTED")
-
-            elif text == "/stop":
-                running = False
-                send_message("⛔ Notifications STOPPED")
-
-    if running:
-        Alg = format_telegram_message(checkForTCF("1"),"Alger")
-        Oran = format_telegram_message(checkForTCF("2"),"Oran")
-        send_message(Alg)
-        send_message(Oran)
-        time.sleep(60)
-    else:
-        time.sleep(1)
-
 
 # Disable warnings for verify=False
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# --- CONFIGURATION ---
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -146,7 +31,7 @@ def checkForTCF(idAntenne):
         "Referer": "https://forms.vfsglobal.com.dz/IFAL/dash",
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
     }
-
+    
     try:
         response = requests.post(
             url,
@@ -232,12 +117,12 @@ while True:
 
         if "message" in update:
             text = update["message"].get("text", "").strip()
-
+            
             # Start / Stop
             if text == "/start":
                 running = True
                 send_message(f"✅ STARTED\nRate: {sleep_duration}s\nMode: {'Found Only' if only_show_found else 'All Info'}")
-
+            
             elif text == "/stop":
                 running = False
                 send_message("⛔ STOPPED")
@@ -277,14 +162,12 @@ while True:
         current_time = time.time()
         # Only check if enough time has passed since the last check
         if current_time - last_check_time > sleep_duration:
-
+            
             # Check Alger
-            a = checkForTCF("1")
-            msg_alg, found_alg = format_telegram_message(a, "Alger")
-
+            msg_alg, found_alg = format_telegram_message(checkForTCF("1"), "Alger")
+            
             # Check Oran
-            b = checkForTCF("2")
-            msg_oran, found_oran = format_telegram_message(b, "Oran")
+            msg_oran, found_oran = format_telegram_message(checkForTCF("2"), "Oran")
 
             # Combine messages into one string
             # We send if:
@@ -292,7 +175,7 @@ while True:
             # 2. OR if ANY date was found in either city (found_alg or found_oran)
             if not only_show_found or (found_alg or found_oran):
                 combined_msg = f"{msg_alg}\n------------------\n{msg_oran}"
-                send_message(combined_msg+"\n\n{0}\n{1}".format(a,b))
+                send_message(combined_msg)
 
             # Update the last check time
             last_check_time = time.time()
