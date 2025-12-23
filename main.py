@@ -7,8 +7,8 @@ import os
 # Disable warnings for verify=False
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+BOT_TOKEN = "8532475060:AAHqNAMopq_3YCG8poKJJJ0u8_mvaYjMVNI"
+CHAT_ID = "6086541776"
 
 API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
